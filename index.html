@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Galileo-loop Control Room — Graham Hancock / Keating's Razor</title>
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --panel: #141414;
+    --panel-2: #1c1c1c;
+    --border: #2a2a2a;
+    --border-strong: #3a3a3a;
+    --text: #f2f2f2;
+    --text-dim: #999;
+    --text-faint: #666;
+    --razor: #e11414;
+    --pass: #16a34a;
+    --open: #f59e0b;
+    --blocked: #ef4444;
+    --review: #3b82f6;
+    --done: #4cb782;
+    --cancelled: #6b7280;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  header {
+    padding: 24px 32px 16px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #141414 0%, #0a0a0a 100%);
+    position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(8px);
+  }
+  h1 {
+    margin: 0 0 4px;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  h1 .razor { color: var(--razor); }
+  .meta {
+    display: flex; gap: 24px; flex-wrap: wrap;
+    margin-top: 8px; color: var(--text-dim); font-size: 13px;
+  }
+  .meta strong { color: var(--text); font-weight: 600; }
+  .meta .gate-status {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 2px 8px; border-radius: 4px;
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--open);
+    font-weight: 600; font-size: 12px;
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .meta .gate-status.pass { background: rgba(22, 163, 74, 0.15); color: var(--pass); }
+  .meta .gate-status.done { background: rgba(76, 183, 130, 0.15); color: var(--done); }
+  .meta .gate-status.blocked { background: rgba(239, 68, 68, 0.15); color: var(--blocked); }
+  .meta .gate-status.review { background: rgba(59, 130, 246, 0.15); color: var(--review); }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  .toolbar {
+    display: flex; gap: 12px; margin-top: 12px;
+    align-items: center; flex-wrap: wrap;
+  }
+  .toolbar button, .toolbar a {
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: inherit;
+  }
+  .toolbar button:hover, .toolbar a:hover { background: #252525; border-color: var(--border-strong); }
+  .toolbar input[type="search"] {
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    min-width: 240px;
+    font-family: inherit;
+  }
+  .toolbar .spacer { flex: 1; }
+  .toolbar .progress {
+    font-size: 12px; color: var(--text-dim);
+    padding: 6px 10px;
+    background: var(--panel-2);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+  .toolbar .progress strong { color: var(--text); }
+
+  .board {
+    display: flex;
+    gap: 12px;
+    padding: 16px;
+    overflow-x: auto;
+    min-height: calc(100vh - 180px);
+    align-items: flex-start;
+  }
+  .column {
+    flex: 0 0 320px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    display: flex; flex-direction: column;
+    max-height: calc(100vh - 200px);
+  }
+  .column.drag-target { border-color: var(--razor); background: #1a1212; }
+  .col-header {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+    flex-shrink: 0;
+  }
+  .col-title {
+    font-weight: 700; font-size: 13px;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    flex: 1; min-width: 0;
+  }
+  .col-count {
+    background: var(--panel-2);
+    color: var(--text-dim);
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .col-body {
+    padding: 8px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 60px;
+  }
+  .col-body:empty::before {
+    content: "Drop here";
+    display: block; text-align: center;
+    color: var(--text-faint);
+    padding: 24px 0;
+    font-style: italic;
+    font-size: 12px;
+  }
+
+  .card {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border-strong);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    cursor: grab;
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+  .card:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+  .card.dragging { opacity: 0.4; cursor: grabbing; }
+  .card .card-id {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 10px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+  .card .card-title {
+    font-weight: 600;
+    font-size: 13px;
+    line-height: 1.35;
+    margin: 0 0 6px;
+  }
+  .card .card-desc {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.45;
+    margin: 4px 0 8px;
+  }
+  .card .card-meta {
+    display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+    margin-top: 6px;
+  }
+  .tag {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: var(--border);
+    color: var(--text-dim);
+  }
+  .tag.open { background: rgba(245, 158, 11, 0.18); color: var(--open); }
+  .tag.pass { background: rgba(22, 163, 74, 0.18); color: var(--pass); }
+  .tag.done { background: rgba(76, 183, 130, 0.18); color: var(--done); }
+  .tag.blocked { background: rgba(239, 68, 68, 0.18); color: var(--blocked); }
+  .tag.review { background: rgba(59, 130, 246, 0.18); color: var(--review); }
+  .tag.cancelled { background: rgba(107, 114, 128, 0.18); color: var(--cancelled); }
+  .tag.brian { background: rgba(225, 20, 20, 0.18); color: var(--razor); }
+  .tag.priority { background: rgba(168, 85, 247, 0.18); color: #c084fc; }
+
+  .card.priority-high { border-left-color: var(--razor); }
+  .card.priority-med { border-left-color: var(--open); }
+  .card.priority-low { border-left-color: var(--text-faint); }
+
+  .card .card-link {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 11px;
+    display: inline-flex; align-items: center; gap: 4px;
+    margin-top: 4px;
+  }
+  .card .card-link:hover { color: var(--text); }
+
+  /* Gate row */
+  .gates {
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+  }
+  .gate {
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--panel-2);
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .gate .gate-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-faint);
+    font-weight: 600;
+  }
+  .gate .gate-name {
+    font-size: 13px; font-weight: 600;
+  }
+  .gate .gate-status-row {
+    margin-top: 4px;
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+
+  @media (max-width: 900px) {
+    .gates { grid-template-columns: repeat(2, 1fr); }
+    .column { flex: 0 0 280px; }
+  }
+
+  .footer {
+    padding: 16px;
+    color: var(--text-faint);
+    font-size: 11px;
+    text-align: center;
+    border-top: 1px solid var(--border);
+  }
+  .footer a { color: var(--text-dim); text-decoration: none; }
+  .footer a:hover { color: var(--text); }
+
+  /* Last-updated indicator */
+  .saved-indicator {
+    position: fixed; bottom: 16px; right: 16px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+  }
+  .saved-indicator.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🪒 <span class="razor">Galileo-loop</span> Control Room — <em>Three Claims, Zero Evidence: Graham Hancock on Diary of a CEO</em></h1>
+  <div class="meta">
+    <span><strong>Owner:</strong> losingthenobelprize@gmail.com</span>
+    <span><strong>Source video:</strong> <a href="https://youtu.be/Xs94KBeIiAo" style="color:var(--text);">youtu.be/Xs94KBeIiAo</a></span>
+    <span class="gate-status" id="overall-status"><span class="dot"></span> Gate 2 OPEN — Script + Edit Map</span>
+    <span><strong>Target:</strong> ≤30 min · three hypotheses</span>
+    <span><strong>Last sync:</strong> <span id="last-sync">just now</span></span>
+  </div>
+  <div class="toolbar">
+    <button id="add-card">+ New card</button>
+    <input type="search" id="search" placeholder="Search cards…">
+    <span class="progress" id="progress">Loading…</span>
+    <span class="spacer"></span>
+    <button id="export">Export JSON</button>
+    <button id="reset">Reset to seed</button>
+  </div>
+</header>
+
+<div class="gates" id="gates"></div>
+
+<main class="board" id="board"></main>
+
+<div class="footer">
+  Galileo-loop kanban · self-contained, localStorage-backed, single file ·
+  <a href="https://linear.app/galileo-galilei" id="linear-link">Linear project: GAL · 7 labels ready</a> ·
+  <a href="https://github.com/BrianKeating/galileo-loop-test" id="repo-link">Test repo: galileo-loop-test</a>
+</div>
+
+<div class="saved-indicator" id="saved-indicator">✓ saved</div>
+
+<script>
+// ============================================================================
+//  Galileo-loop Control Room — single-file kanban
+//  State persists in localStorage. Drag-and-drop between columns.
+//  Columns mirror the production packet structure: 00-04 + supporting boards.
+// ============================================================================
+
+const STORAGE_KEY = "galileo-loop-control-room-v1";
+const SEED = {
+  gates: [
+    { id: "G1", name: "Inputs normalized",     status: "pass"    },
+    { id: "G2", name: "Evidence + claims",     status: "open"    },
+    { id: "G3", name: "Hook + script",         status: "pass"    },
+    { id: "G4", name: "Production plan",       status: "pass"    },
+    { id: "G5", name: "Final QC",              status: "blocked" },
+  ],
+  columns: [
+    { id: "00-control",     title: "00 — Control Room",     tone: "open" },
+    { id: "01-insert",      title: "01 — Insert Sheet",     tone: "review" },
+    { id: "02-prompter",    title: "02 — Master Teleprompter", tone: "pass" },
+    { id: "03-short",       title: "03 — 60-Second Short",  tone: "open" },
+    { id: "04-broll",       title: "04 — B-Roll + Editor",  tone: "pass" },
+    { id: "factcheck",      title: "Fact-Check Board",      tone: "blocked" },
+    { id: "rights",         title: "Legal / Imagery Rights", tone: "blocked" },
+    { id: "decisions",      title: "Open Decisions for Brian", tone: "brian" },
+  ],
+  cards: [
+    // 00 — Control Room
+    { id: "C-00-1", col: "00-control", status: "pass",   priority: "high", title: "Inputs normalized", desc: "Source documents, transcripts, and the 00–04 packet structure are merged and consistent. Old source Docs superseded.", tags: ["gate-1"] },
+    { id: "C-00-2", col: "00-control", status: "pass",   priority: "high", title: "Hook and script locked for table read", desc: "Gate 3 PASS. Final factual changes may reopen affected lines.", tags: ["gate-3"] },
+    { id: "C-00-3", col: "00-control", status: "open",   priority: "high", title: "Gate 2 — Clear every fact-check claim", desc: "Resolve every ⚠/✅ in the Fact-Check Board. Replace rough search placeholders with source URLs. Aligned with Holliday 2023, Alvarez 1970, Drake Passage dates, Biondi/Snopes.", tags: ["gate-2", "factcheck-blocker"] },
+    { id: "C-00-4", col: "00-control", status: "blocked",priority: "high", title: "Gate 5 — Final QC not run", desc: "Read-aloud, legal/rights review, link check, picture-lock review. Blocked until Gate 2 clears + rights close.", tags: ["gate-5", "blocked-on-G2"] },
+
+    // 01 — Insert Sheet (Hancock × DOAC)
+    { id: "C-01-A0", col: "01-insert", status: "pass",   priority: "med",  title: "INSERT 0 — Cold open (health firewall)", desc: "Drops before any Hancock content. 'I wish him a full and complete recovery, no asterisk.' ", tags: ["verified", "DOAC"] },
+    { id: "C-01-A1", col: "01-insert", status: "pass",   priority: "med",  title: "INSERT 1 — \"Solid science nobody disputes\"", desc: "DOAC 06:56–07:13 + 11:20–11:25. The narrower 'catastrophe' vs. broader 'nobody disputes the cause' distinction must be preserved.", tags: ["DOAC", "verified"] },
+    { id: "C-01-A2", col: "01-insert", status: "pass",   priority: "high", title: "INSERT 2 — Antarctica map (centerpiece)", desc: "DOAC 17:43–17:48 — 'This is the Orontius Finaeus map. It shows Antarctica right there.' Pair with hero GFX 1.5.", tags: ["DOAC", "verified", "hero"] },
+    { id: "C-01-A3", col: "01-insert", status: "pass",   priority: "med",  title: "INSERT 3 — Longitude self-own", desc: "DOAC 18:31–18:36. Use against him: if 1531 can't fix longitudes, the 'accurate east-west' claim evaporates.", tags: ["DOAC", "verified"] },
+    { id: "C-01-A4", col: "01-insert", status: "pass",   priority: "med",  title: "INSERT 4 — Göbekli Tepe inference", desc: "DOAC 21:45–21:52. 'Highly organized, sophisticated hunter-gatherer…'", tags: ["DOAC", "verified"] },
+    { id: "C-01-A5", col: "01-insert", status: "pass",   priority: "med",  title: "INSERT 5 — Caral / global civilizations", desc: "DOAC 26:59–27:07. 'Apparently coincidental emergence of high…'", tags: ["DOAC", "verified"] },
+    { id: "C-01-A6", col: "01-insert", status: "pass",   priority: "high", title: "INSERT 6 — Great Pyramid 43,200 (MATH)", desc: "DOAC 41:43–42:08. The two-claim fusion point. Quote both parts; correct 'Phineas' pronunciation dryly, once.", tags: ["DOAC", "verified", "hero"] },
+    { id: "C-01-A7", col: "01-insert", status: "pass",   priority: "high", title: "INSERT 7 — Biondi 'structures under Khafre' (optional)", desc: "DOAC 55:42–55:46. Cut for time. Use only if you have the room for the SAR rebuttal arc.", tags: ["DOAC", "optional"] },
+
+    // 02 — Master Teleprompter (sections)
+    { id: "C-02-COLD", col: "02-prompter", status: "pass", priority: "high", title: "Cold open + hook (0:00–2:30)", desc: "Dibble admission planted. Plant the callback 'the universe doesn't grade on charisma' — payoff in outro.", tags: ["script", "locked"] },
+    { id: "C-02-C1",  col: "02-prompter", status: "pass", priority: "high", title: "Claim 1 — Antarctica (4:00)", desc: "Beat 1 quote → Beat 2 receipts (Finé, Terra Australis, ice age, longitude self-own) → Beat 3 tell → Beat 4 verdict ('small revision to the manuscript').", tags: ["script", "home-turf"] },
+    { id: "C-02-C2",  col: "02-prompter", status: "pass", priority: "high", title: "Claim 2 — The Pyramids (9:00)", desc: "Two sub-claims kept separate: (a) 43,200 numerology, (b) underground. Numerology kill + Alvarez muon weapon + bridge to Keating Experiments muon video.", tags: ["script", "longest", "hero"] },
+    { id: "C-02-C3",  col: "02-prompter", status: "pass", priority: "high", title: "Claim 3 — Younger Dryas impact (6:00)", desc: "Concede event generously, dispute cause. Holliday 2023 — 75 pages, 16 authors, title is fair use.", tags: ["script"] },
+    { id: "C-02-SYN", col: "02-prompter", status: "pass", priority: "high", title: "Synthesis — name the pattern (4:00)", desc: "The real intellectual kill. 'An anomaly your theory can explain is not evidence for your theory.' Driveway analogy.", tags: ["script", "kill"] },
+    { id: "C-02-CLOSE", col: "02-prompter", status: "pass", priority: "high", title: "Verdict + letter to Steven + close (3:00)", desc: "State what you actually believe. Direct to Steven: 'I'm right here. I've been to Antarctica. I'll answer the phone.' One-question test in close.", tags: ["script", "warm"] },
+
+    // 03 — 60-Second Short
+    { id: "C-03-SCRIPT", col: "03-short", status: "pass", priority: "high", title: "60-second vertical script", desc: "Pyramid math trick. Target 55–65s. Spoken script locked. 'That's not ancient geodesy. That's curve-fitting in royal cubits.'", tags: ["vertical", "short"] },
+    { id: "C-03-EDIT",   col: "03-short", status: "open", priority: "high", title: "Vertical edit map", desc: "0:00 talking head → 0:18 razor red misses → 0:28 hero 2π → 0:47 split screen collapse → 0:58 end card. Pending Gate 2 + GFX builds.", tags: ["vertical", "edit-blocked"] },
+    { id: "C-03-PUB",    col: "03-short", status: "open", priority: "med",  title: "Publish check", desc: "Confirm all dimensions and percentages against cleared fact-check sheet before export. Use licensed/PD pyramid imagery; keep third-party podcast footage brief, credited, framed as citation.", tags: ["vertical", "publish"] },
+
+    // 04 — B-Roll + Editor Handoff
+    { id: "C-04-1",  col: "04-broll", status: "pass", priority: "high", title: "Cut 1 — Antarctica (7 clips + 1 hero GFX)", desc: "1.5 ★ Finé map → real Antarctica rotate/rescale = most shareable asset. Cuts 1.1–1.9 verified.", tags: ["broll", "OWN+DOAC+PD"] },
+    { id: "C-04-2",  col: "04-broll", status: "pass", priority: "high", title: "Cut 2 — Pyramids (13 clips, 3 hero GFX)", desc: "2.4+2.5+2.6 = the 2π / drum / split-screen sequence. 2.10→2.12 = Alvarez weapon → own muon bridge. THE rewatch beats.", tags: ["broll", "OWN+PD+GFX"] },
+    { id: "C-04-3",  col: "04-broll", status: "pass", priority: "high", title: "Cut 3 — Younger Dryas (6 clips)", desc: "3.4 ★ Hold on Holliday 2023 title. 3.5 stack of dispute papers to flood the screen with the dispute he said didn't exist.", tags: ["broll"] },
+    { id: "C-04-4",  col: "04-broll", status: "pass", priority: "high", title: "Pattern + Verdict (5 supporting clips)", desc: "4.1 ★ Rogan/Dibble concession — THE RECEIPT, strongest clip in the video. Search line: 'where archaeologists have looked' (JRE #2136).", tags: ["broll", "hero"] },
+    { id: "C-04-RULE", col: "04-broll", status: "pass", priority: "high", title: "DOAC thumbnail use rule enforced", desc: "Bordered inset only, max 40% frame width, 2-4px red border, on-screen credit. Never screen-fill. Keeps cards defensible.", tags: ["policy", "rights"] },
+    { id: "C-04-LEG",  col: "04-broll", status: "open", priority: "med",  title: "JRE clip rights", desc: "≤10s on-screen credit per JRE #2136. Confirm clip-usage rights before picture lock. Open per Gate 4.", tags: ["rights", "open"] },
+
+    // Fact-Check Board
+    { id: "C-FC-1", col: "factcheck", status: "pass",   priority: "high", title: "✅ Oronce Finé — French, not 'Phineas'", desc: "He says 'Phineas' on tape — quote him, then correct dryly, once.", tags: ["verified", "DOAC-17:43"] },
+    { id: "C-FC-2", col: "factcheck", status: "pass",   priority: "high", title: "✅ Pyramid: 0.44% / 0.61%; perimeter÷height=2π≈6.29; Earth ratio 6.304", desc: "Verified. 0.44% (height×43200 vs polar radius), 0.61% (perimeter×43200 vs circumference). Math kill.", tags: ["verified", "math"] },
+    { id: "C-FC-3", col: "factcheck", status: "pass",   priority: "high", title: "✅ Alvarez muon scan: 0 chambers, 1969 APS / Science Feb 1970", desc: "Same pyramid (Khafre/Chephren) as Biondi's claim. ~19% surveyed. THE weapon.", tags: ["verified", "key-fact"] },
+    { id: "C-FC-4", col: "factcheck", status: "pass",   priority: "high", title: "✅ SAR penetration ~2m; Biondi not peer-reviewed; image ~99.9% AI", desc: "Confirm Snopes source for AI-generated claim. Synthetic aperture radar cannot reach the claimed depth.", tags: ["verified", "Snopes"] },
+    { id: "C-FC-5", col: "factcheck", status: "pass",   priority: "high", title: "✅ Holliday et al. 2023 — Earth-Science Reviews 247:104502", desc: "16 authors, 75 pages, title accurate, fair use. The 'nobody disputes' killer.", tags: ["verified"] },
+    { id: "C-FC-6", col: "factcheck", status: "pass",   priority: "high", title: "✅ Dibble/Rogan admission paraphrase", desc: "≤15 words if quoted. Attribute to Rogan debate. 'Where archaeologists have looked, there's no evidence.'", tags: ["verified", "JRE-2136"] },
+    { id: "C-FC-7", col: "factcheck", status: "pass",   priority: "high", title: "✅ Drake Passage ~34 Ma; H. sapiens ~315 kyr (108×)", desc: "No window for human survey of ice-free Antarctica.", tags: ["verified", "physics"] },
+    { id: "C-FC-8", col: "factcheck", status: "open",   priority: "high", title: "⚠ VERIFY day-of: '3M views in a day' figure", desc: "Cite the live counter on record day. Don't burn into lower-third before confirming.", tags: ["verify-day-of"] },
+    { id: "C-FC-9", col: "factcheck", status: "open",   priority: "med",  title: "⚠ 'Underground' — verify 'thousands of meters' is NOT in his mouth", desc: "He says 'definitely something underneath' + 'hundreds of feet / spiral staircases'. The 2km figure is the Biondi press number he amplified, not his quote.", tags: ["verify", "do-not-misattribute"] },
+
+    // Rights
+    { id: "C-RT-1", col: "rights", status: "pass",   priority: "med",  title: "OWN clips — Brian's archive (South Pole, BICEP2, CBS, DOAC, KE)", desc: "No rights issue. Free to use.", tags: ["rights", "ok"] },
+    { id: "C-RT-2", col: "rights", status: "pass",   priority: "med",  title: "Public domain (Finé map, Aristotle, old maps, Harrison, Alvarez era, Chandrasekhar/Rubin)", desc: "Free; still caption sources.", tags: ["rights", "ok"] },
+    { id: "C-RT-3", col: "rights", status: "pass",   priority: "med",  title: "GFX builds — animation we create", desc: "No rights issue. Priority: 1.5, 2.4, 2.10.", tags: ["rights", "ok"] },
+    { id: "C-RT-4", col: "rights", status: "pass",   priority: "med",  title: "Stock (licensed) — Giza, ice age, comet, driveway", desc: "Pull from your licensed library.", tags: ["rights", "ok"] },
+    { id: "C-RT-5", col: "rights", status: "open",   priority: "high", title: "DOAC Hancock clips — confirmation needed", desc: "Bordered inset, ≤10s, on-screen credit 'Diary of a CEO / YouTube'. Citation use only. Need to confirm with DOAC or rely on fair use.", tags: ["rights", "open"] },
+    { id: "C-RT-6", col: "rights", status: "open",   priority: "high", title: "JRE #2136 Dibble clip — confirmation needed", desc: "≤10s, on-screen credit. The strongest clip in the video (the concession). Clip-usage rights remain open per Gate 4.", tags: ["rights", "open", "hero"] },
+    { id: "C-RT-7", col: "rights", status: "open",   priority: "med",  title: "Netflix stills + book covers — fair use / press", desc: "Bordered inset only. 3-4s montage. Factual, don't dwell.", tags: ["rights", "open"] },
+
+    // Open Decisions for Brian
+    { id: "C-DEC-1", col: "decisions", status: "open", priority: "high", title: "Charlatan / 'grifter' framing — keep OUT or use?", desc: "Packet says OUT. Your call, flagged at the end. The contempt lives in the precision. 'He admitted there's no evidence' humiliates him more than any insult.", tags: ["brian-decision", "tone"] },
+    { id: "C-DEC-2", col: "decisions", status: "open", priority: "high", title: "Use the Rogan/Dibble clip? (4.1)", desc: "The strongest single asset in the video. The 'where archaeologists have looked' concession. If rights don't clear, the script still works without it (paraphrase). But you lose the receipt.", tags: ["brian-decision", "rights"] },
+    { id: "C-DEC-3", col: "decisions", status: "open", priority: "med",  title: "Optional INSERT 7 (Biondi underground) — cut or keep?", desc: "Adds 30-60s for the SAR rebuttal arc. Only if you have the room. Otherwise the Alvarez-only path is cleaner.", tags: ["brian-decision", "cut"] },
+    { id: "C-DEC-4", col: "decisions", status: "open", priority: "high", title: "Open the letter to Steven, or keep it implicit?", desc: "Packet includes a direct address: 'Steven — as your friend.' Warm but pointed. Risk: the audience reads it as feud bait. Upside: real accountability ask to a serious host.", tags: ["brian-decision", "tone"] },
+    { id: "C-DEC-5", col: "decisions", status: "open", priority: "med",  title: "Chandrasekhar + Vera Rubin framing — 'real suppression' beat", desc: "Names actual cases of scientific suppression. Defends the meta-claim without validating Hancock. Risk: it can read as whataboutism if not delivered carefully.", tags: ["brian-decision", "narrative"] },
+    { id: "C-DEC-6", col: "decisions", status: "open", priority: "low",  title: "Run the title sequence? Or hard cut to cold open?", desc: "Currently no card spec for the cold open. Either is defensible; cold-cut feels more 'raze'.", tags: ["brian-decision", "edit"] },
+  ],
+};
+
+const STATUS_LABELS = {
+  open: "OPEN", pass: "PASS", done: "DONE",
+  blocked: "BLOCKED", review: "REVIEW", cancelled: "CANCEL",
+};
+const PRIORITY_LABELS = { high: "★", med: "◆", low: "·" };
+
+// ---------- state ----------
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return JSON.parse(JSON.stringify(SEED));
+    const parsed = JSON.parse(raw);
+    // ensure new fields propagate
+    return Object.assign(JSON.parse(JSON.stringify(SEED)), parsed);
+  } catch (e) {
+    return JSON.parse(JSON.stringify(SEED));
+  }
+}
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  flashSaved();
+  updateProgress();
+  updateLastSync();
+}
+function flashSaved() {
+  const el = document.getElementById("saved-indicator");
+  el.classList.add("show");
+  clearTimeout(flashSaved._t);
+  flashSaved._t = setTimeout(() => el.classList.remove("show"), 900);
+}
+function updateLastSync() {
+  document.getElementById("last-sync").textContent = new Date().toLocaleTimeString();
+}
+
+// ---------- render ----------
+let state = load();
+
+function renderGates() {
+  const el = document.getElementById("gates");
+  el.innerHTML = "";
+  for (const g of state.gates) {
+    const div = document.createElement("div");
+    div.className = "gate";
+    div.innerHTML = `
+      <span class="gate-label">${g.id}</span>
+      <span class="gate-name">${g.name}</span>
+      <span class="gate-status-row tag ${g.status}"><span class="dot"></span>${STATUS_LABELS[g.status] || g.status}</span>
+    `;
+    el.appendChild(div);
+  }
+  // Overall header status reflects Gate 2
+  const g2 = state.gates.find(g => g.id === "G2");
+  const overall = document.getElementById("overall-status");
+  if (g2 && g2.status === "pass") {
+    overall.className = "gate-status pass";
+    overall.innerHTML = `<span class="dot"></span> Gate 2 CLEARED — Ready to record`;
+  } else if (g2 && g2.status === "open") {
+    overall.className = "gate-status";
+    overall.innerHTML = `<span class="dot"></span> Gate 2 OPEN — Script + Edit Map`;
+  } else {
+    overall.className = "gate-status blocked";
+    overall.innerHTML = `<span class="dot"></span> Blocked — ${g2 ? g2.name : "G2"}`;
+  }
+}
+
+function renderBoard(filter = "") {
+  const board = document.getElementById("board");
+  board.innerHTML = "";
+  const lcFilter = filter.toLowerCase();
+  for (const col of state.columns) {
+    const colEl = document.createElement("section");
+    colEl.className = "column";
+    colEl.dataset.colId = col.id;
+
+    const cards = state.cards.filter(c =>
+      c.col === col.id &&
+      (!lcFilter ||
+        c.title.toLowerCase().includes(lcFilter) ||
+        (c.desc || "").toLowerCase().includes(lcFilter) ||
+        (c.tags || []).some(t => t.toLowerCase().includes(lcFilter))));
+
+    colEl.innerHTML = `
+      <header class="col-header">
+        <span class="col-title">${col.title}</span>
+        <span class="col-count">${cards.length}</span>
+      </header>
+      <div class="col-body" data-col-id="${col.id}"></div>
+    `;
+    const body = colEl.querySelector(".col-body");
+    for (const c of cards) {
+      body.appendChild(renderCard(c));
+    }
+    // drag-drop wiring
+    colEl.addEventListener("dragover", e => { e.preventDefault(); colEl.classList.add("drag-target"); });
+    colEl.addEventListener("dragleave", () => colEl.classList.remove("drag-target"));
+    colEl.addEventListener("drop", e => {
+      e.preventDefault();
+      colEl.classList.remove("drag-target");
+      const id = e.dataTransfer.getData("text/plain");
+      const card = state.cards.find(c => c.id === id);
+      if (card) {
+        card.col = col.id;
+        save();
+        renderBoard(document.getElementById("search").value);
+      }
+    });
+    board.appendChild(colEl);
+  }
+}
+
+function renderCard(c) {
+  const el = document.createElement("article");
+  el.className = `card priority-${c.priority || "med"}`;
+  el.draggable = true;
+  el.dataset.cardId = c.id;
+  el.innerHTML = `
+    <div class="card-id">${c.id}</div>
+    <h3 class="card-title">${escapeHtml(c.title)}</h3>
+    ${c.desc ? `<p class="card-desc">${escapeHtml(c.desc)}</p>` : ""}
+    <div class="card-meta">
+      <span class="tag ${c.status}">${STATUS_LABELS[c.status] || c.status}</span>
+      <span class="tag priority">${PRIORITY_LABELS[c.priority] || ""} ${c.priority || "med"}</span>
+      ${(c.tags || []).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join("")}
+    </div>
+    <a class="card-link" href="#" data-action="edit">✎ edit</a>
+  `;
+  el.addEventListener("dragstart", e => {
+    e.dataTransfer.setData("text/plain", c.id);
+    el.classList.add("dragging");
+  });
+  el.addEventListener("dragend", () => el.classList.remove("dragging"));
+  el.querySelector('[data-action="edit"]').addEventListener("click", e => {
+    e.preventDefault();
+    editCard(c.id);
+  });
+  return el;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+}
+
+// ---------- progress ----------
+function updateProgress() {
+  const total = state.cards.length;
+  const done = state.cards.filter(c => c.status === "pass" || c.status === "done").length;
+  const blocked = state.cards.filter(c => c.status === "blocked").length;
+  const open = state.cards.filter(c => c.status === "open").length;
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  document.getElementById("progress").innerHTML =
+    `<strong>${pct}%</strong> · <span style="color:var(--pass)">${done} pass</span> · <span style="color:var(--open)">${open} open</span> · <span style="color:var(--blocked)">${blocked} blocked</span> · ${total} total`;
+}
+
+// ---------- editing ----------
+function editCard(id) {
+  const c = state.cards.find(x => x.id === id);
+  if (!c) return;
+  const newTitle = prompt("Title:", c.title);
+  if (newTitle === null) return;
+  const newDesc = prompt("Description:", c.desc || "");
+  if (newDesc === null) return;
+  const newStatus = prompt("Status (pass/open/blocked/review/done/cancelled):", c.status);
+  if (newStatus === null) return;
+  c.title = newTitle || c.title;
+  c.desc = newDesc;
+  if (["pass","open","blocked","review","done","cancelled"].includes(newStatus)) c.status = newStatus;
+  save();
+  renderBoard(document.getElementById("search").value);
+}
+
+function newCard() {
+  const colId = prompt("Column id (00-control / 01-insert / 02-prompter / 03-short / 04-broll / factcheck / rights / decisions):", "decisions");
+  if (!colId || !state.columns.find(c => c.id === colId)) return;
+  const title = prompt("Card title:", "");
+  if (!title) return;
+  const desc = prompt("Description:", "") || "";
+  const id = "C-USER-" + Date.now().toString(36);
+  state.cards.push({ id, col: colId, status: "open", priority: "med", title, desc, tags: ["user"] });
+  save();
+  renderBoard(document.getElementById("search").value);
+}
+
+// ---------- wiring ----------
+document.getElementById("search").addEventListener("input", e => renderBoard(e.target.value));
+document.getElementById("add-card").addEventListener("click", newCard);
+document.getElementById("export").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `galileo-control-room-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+document.getElementById("reset").addEventListener("click", () => {
+  if (confirm("Reset to seed data? Your edits will be lost.")) {
+    localStorage.removeItem(STORAGE_KEY);
+    state = JSON.parse(JSON.stringify(SEED));
+    save();
+    renderAll();
+  }
+});
+
+// init
+function renderAll() {
+  renderGates();
+  renderBoard();
+  updateProgress();
+  updateLastSync();
+}
+renderAll();
+</script>
+</body>
+</html>
