@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EDITOR BRIEF — Keating's Razor (Hancock / DOAC)</title>
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --panel: #141414;
+    --panel-2: #1c1c1c;
+    --border: #2a2a2a;
+    --border-strong: #3a3a3a;
+    --text: #f2f2f2;
+    --text-dim: #999;
+    --text-faint: #666;
+    --razor: #e11414;
+    --pass: #16a34a;
+    --open: #f59e0b;
+    --blocked: #ef4444;
+    --review: #3b82f6;
+    --done: #4cb782;
+    --brian: #a855f7;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  header {
+    padding: 24px 32px 16px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #141414 0%, #0a0a0a 100%);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .top-link {
+    display: inline-block;
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+  .top-link:hover { color: var(--text); }
+  h1 {
+    margin: 0 0 4px;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  h1 .razor { color: var(--razor); }
+  .meta {
+    display: flex; gap: 24px; flex-wrap: wrap;
+    margin-top: 8px; color: var(--text-dim); font-size: 13px;
+  }
+  .meta strong { color: var(--text); font-weight: 600; }
+
+  .toolbar {
+    display: flex; gap: 12px; margin-top: 12px;
+    align-items: center; flex-wrap: wrap;
+  }
+  .toolbar button, .toolbar a {
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: inherit;
+  }
+  .toolbar button:hover, .toolbar a:hover { background: #252525; border-color: var(--border-strong); }
+  .toolbar input[type="search"] {
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    min-width: 240px;
+    font-family: inherit;
+  }
+  .toolbar .spacer { flex: 1; }
+  .toolbar .progress {
+    font-size: 12px; color: var(--text-dim);
+    padding: 6px 10px;
+    background: var(--panel-2);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+  .toolbar .progress strong { color: var(--text); }
+
+  /* Spec banner */
+  .spec-banner {
+    margin: 16px;
+    padding: 16px 20px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--razor);
+    border-radius: 6px;
+  }
+  .spec-banner h2 {
+    margin: 0 0 12px;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--razor);
+    font-weight: 700;
+  }
+  .spec-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 8px 24px;
+    font-size: 12px;
+  }
+  .spec-grid .row { display: flex; gap: 8px; }
+  .spec-grid .label { color: var(--text-faint); min-width: 90px; }
+  .spec-grid .value { color: var(--text); }
+
+  /* Priority builds */
+  .priority-banner {
+    margin: 0 16px 16px;
+    padding: 16px 20px;
+    background: linear-gradient(180deg, rgba(168, 85, 247, 0.08) 0%, transparent 100%);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--brian);
+    border-radius: 6px;
+  }
+  .priority-banner h2 {
+    margin: 0 0 8px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--brian);
+    font-weight: 700;
+  }
+  .priority-list {
+    display: flex; flex-direction: column; gap: 4px;
+    font-size: 13px;
+  }
+  .priority-list .item { display: flex; gap: 8px; }
+  .priority-list .arrow { color: var(--brian); }
+  .priority-list code {
+    background: var(--panel-2);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12px;
+  }
+
+  /* Cut sections */
+  .cut {
+    margin: 16px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .cut-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .cut-num {
+    background: var(--razor);
+    color: white;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+  }
+  .cut-title {
+    font-size: 16px;
+    font-weight: 700;
+    flex: 1;
+  }
+  .cut-title .accent { color: var(--razor); }
+  .cut-script-anchor {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-style: italic;
+  }
+  .cut-progress {
+    font-size: 11px;
+    color: var(--text-dim);
+    padding: 4px 10px;
+    background: var(--panel-2);
+    border-radius: 10px;
+  }
+  .cut-progress strong { color: var(--text); }
+
+  table.clips {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  table.clips th {
+    text-align: left;
+    padding: 8px 12px;
+    background: var(--panel-2);
+    color: var(--text-faint);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    border-bottom: 1px solid var(--border);
+  }
+  table.clips td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  table.clips tr:last-child td { border-bottom: none; }
+  table.clips tr:hover { background: rgba(255,255,255,0.02); }
+
+  .clip-id {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    color: var(--text-faint);
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .clip-visual {
+    font-weight: 600;
+  }
+  .clip-source {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+  .clip-source .pill {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-right: 4px;
+    color: var(--text);
+  }
+  .clip-source .pill.own { background: rgba(22, 163, 74, 0.15); color: var(--pass); border-color: rgba(22, 163, 74, 0.3); }
+  .clip-source .pill.pd { background: rgba(59, 130, 246, 0.15); color: var(--review); border-color: rgba(59, 130, 246, 0.3); }
+  .clip-source .pill.gfx { background: rgba(168, 85, 247, 0.15); color: var(--brian); border-color: rgba(168, 85, 247, 0.3); }
+  .clip-source .pill.stock { background: rgba(245, 158, 11, 0.15); color: var(--open); border-color: rgba(245, 158, 11, 0.3); }
+  .clip-source .pill.bordered { background: rgba(225, 20, 20, 0.15); color: var(--razor); border-color: rgba(225, 20, 20, 0.3); }
+
+  .clip-anchor {
+    font-style: italic;
+    color: var(--text-dim);
+    font-size: 12px;
+  }
+  .clip-notes {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.4;
+  }
+  .clip-notes.hero {
+    color: var(--razor);
+    font-weight: 600;
+  }
+  .clip-notes .verified-tc {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    background: var(--panel-2);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text);
+    font-size: 11px;
+  }
+
+  /* Per-clip status toggle */
+  .status-toggle {
+    display: inline-flex;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .status-toggle button {
+    background: var(--panel-2);
+    color: var(--text-dim);
+    border: none;
+    padding: 4px 8px;
+    font-size: 11px;
+    cursor: pointer;
+    font-family: inherit;
+    border-right: 1px solid var(--border);
+  }
+  .status-toggle button:last-child { border-right: none; }
+  .status-toggle button:hover { background: #252525; color: var(--text); }
+  .status-toggle button.active.needed { background: rgba(245, 158, 11, 0.25); color: var(--open); }
+  .status-toggle button.active.pulled { background: rgba(59, 130, 246, 0.25); color: var(--review); }
+  .status-toggle button.active.got { background: rgba(22, 163, 74, 0.25); color: var(--pass); }
+  .status-toggle button.active.n-a { background: rgba(107, 114, 128, 0.25); color: var(--text-faint); }
+
+  /* Compliance footer */
+  .compliance {
+    margin: 16px;
+    padding: 16px 20px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--open);
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  .compliance h2 {
+    margin: 0 0 8px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--open);
+    font-weight: 700;
+  }
+  .compliance ul {
+    margin: 0;
+    padding-left: 20px;
+    color: var(--text-dim);
+  }
+  .compliance li { margin-bottom: 4px; }
+  .compliance li strong { color: var(--text); }
+
+  .recording-rule {
+    margin: 0 16px 16px;
+    padding: 12px 20px;
+    background: rgba(225, 20, 20, 0.08);
+    border: 1px solid var(--razor);
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text);
+  }
+  .recording-rule strong { color: var(--razor); }
+
+  .footer {
+    padding: 16px;
+    color: var(--text-faint);
+    font-size: 11px;
+    text-align: center;
+    border-top: 1px solid var(--border);
+  }
+  .footer a { color: var(--text-dim); text-decoration: none; }
+  .footer a:hover { color: var(--text); }
+
+  .saved-indicator {
+    position: fixed; bottom: 16px; right: 16px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+  }
+  .saved-indicator.show { opacity: 1; }
+
+  @media (max-width: 900px) {
+    table.clips thead { display: none; }
+    table.clips tr { display: block; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    table.clips td { display: block; padding: 4px 12px; border: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="top-link" href="https://briankeating.github.io/keatings-razor-hancock/">← Back to Control Room</a>
+  <h1>🪒 <span class="razor">EDITOR BRIEF</span> — <em>Three Claims, Zero Evidence</em></h1>
+  <div class="meta">
+    <span><strong>Source video:</strong> <a href="https://youtu.be/Xs94KBeIiAo" style="color:var(--text);">youtu.be/Xs94KBeIiAo</a></span>
+    <span><strong>Into the Impossible / Keating's Razor</strong></span>
+    <span><strong>Target:</strong> ≤30 min · ~3 claims</span>
+    <span><strong>Last sync:</strong> <span id="last-sync">just now</span></span>
+  </div>
+  <div class="toolbar">
+    <input type="search" id="search" placeholder="Search clips…">
+    <span class="progress" id="progress">Loading…</span>
+    <span class="spacer"></span>
+    <button id="export">Export status JSON</button>
+    <button id="reset">Reset to needed</button>
+  </div>
+</header>
+
+<div class="spec-banner">
+  <h2>🎨 Cut-Card Design Spec (all 4 cards)</h2>
+  <div class="spec-grid">
+    <div class="row"><span class="label">Canvas</span><span class="value">1920×1080, full frame</span></div>
+    <div class="row"><span class="label">Base</span><span class="value">Solid near-black #0A0A0A</span></div>
+    <div class="row"><span class="label">BG image</span><span class="value">Cut-specific, ghosted to ~50% opacity</span></div>
+    <div class="row"><span class="label">Title font</span><span class="value">Anton (Google Fonts, free) — Bebas Neue fallback</span></div>
+    <div class="row"><span class="label">Title color</span><span class="value">Off-white #F2F2F2</span></div>
+    <div class="row"><span class="label">Accent color</span><span class="value">Razor red #E11414 (the keyword)</span></div>
+    <div class="row"><span class="label">Title size</span><span class="value">~150–200 px, centered, 2–3 lines</span></div>
+    <div class="row"><span class="label">Razor 🪒</span><span class="value">End of title line, ~90px, same baseline</span></div>
+    <div class="row"><span class="label">DOAC border</span><span class="value">2-4px solid razor red #E11414 (see rule below)</span></div>
+    <div class="row"><span class="label">Transition IN</span><span class="value">Razor-sweep (existing brand grammar)</span></div>
+    <div class="row"><span class="label">Hold</span><span class="value">1.5–2.0 s, then dissolve to first clip</span></div>
+    <div class="row"><span class="label">SFX</span><span class="value">Razor-sweep whoosh. NO vaudeville groan this episode (health context).</span></div>
+  </div>
+</div>
+
+<div class="recording-rule">
+  <strong>⚠ DOAC-thumbnail use rule:</strong>
+  Use it small and bordered — a redacted inset panel (max ~40% of frame width), NOT screen-filling.
+  2-4px solid border in razor red #E11414 + on-screen credit "Diary of a CEO / YouTube".
+  Must read as "the video being responded to" (citation), never as our own background plate.
+  Heavily darken/desaturate it under the inset. When in doubt, use a safe background instead.
+  This treatment is what keeps the cards defensible. Don't fill the screen with their asset.
+</div>
+
+<div class="priority-banner">
+  <h2>★ Priority Builds (if time/budget limited, these three carry the video)</h2>
+  <div class="priority-list">
+    <div class="item"><span class="arrow">→</span><code>1.5</code> Finé map rotate/rescale overlay (Antarctica kill)</div>
+    <div class="item"><span class="arrow">→</span><code>2.4</code> + <code>2.5</code> + <code>2.6</code> the 2π / drum / split-screen sequence (pyramid math kill)</div>
+    <div class="item"><span class="arrow">→</span><code>2.10</code> → <code>2.12</code> Alvarez muon → Brian's own muon video (the weapon + the bridge)</div>
+  </div>
+</div>
+
+<main id="board"></main>
+
+<div class="compliance">
+  <h2>📋 Fact-Check / Compliance Notes for Editor</h2>
+  <ul>
+    <li>All third-party clips <strong>≤10s</strong>, with on-screen source credit. Hancock spoken quotes already ≤15 words in script.</li>
+    <li>Do <strong>NOT</strong> screen-fill the DOAC thumbnail. Bordered inset only (see rule above).</li>
+    <li>"3M views in a day" lower-third: confirm against the <strong>live counter</strong> on record day before burning it in.</li>
+    <li>Khafre = Second Pyramid = Chephren = the pyramid Alvarez scanned = the pyramid Biondi/Hancock claim. Keep that identity <strong>visually explicit in Cut 2</strong> — it's the whole point.</li>
+    <li>DOAC, JRE, and Netflix/press stills all treated as fair-use citation (per Brian, 2026-07-22). Bordered inset + on-screen credit + ≤10s remains the policy. No rights gate.</li>
+  </ul>
+</div>
+
+<div class="footer">
+  Editor brief · sub-page of the Galileo-loop Control Room ·
+  <a href="https://briankeating.github.io/keatings-razor-hancock/">Control Room</a> ·
+  <a href="https://github.com/BrianKeating/keatings-razor-hancock">GitHub repo</a> ·
+  <a href="https://linear.app/galileo-galilei/issue/GAL-108">Linear GAL-108</a>
+</div>
+
+<div class="saved-indicator" id="saved-indicator">✓ saved</div>
+
+<script>
+const STORAGE_KEY = "galileo-loop-editor-brief-v1";
+const CUTS = [
+  {
+    id: "cut-1",
+    num: "CUT 1",
+    title: '🪒 "THEY <span class="accent">LIED</span> ABOUT ANTARCTICA"',
+    accent: "LIED",
+    bg: "Ghosted real Antarctica ice plate (Brian's own South Pole footage, desaturated, 50%) — DOAC thumb optional as small bordered inset, bottom-right.",
+    anchor: "Top of \"CLAIM ONE: ANTARCTICA\"",
+    clips: [
+      { id: "1.1", visual: "Brian at South Pole / telescopes", source: "OWN", sourceClass: "own", anchor: "Hook: \"I've been to Antarctica twice\"", notes: "Establishes standing. Cold, wide, real." },
+      { id: "1.2", visual: "Brian on DOAC (his own appearance)", source: "OWN / DOAC", sourceClass: "own", anchor: "Hook: \"...went on Diary of a CEO\"", notes: "Proves he's been on the show. Short, ≤6s. Bordered inset, credit." },
+      { id: "1.3", visual: "Hancock holding the map", source: "DOAC", sourceClass: "bordered", anchor: "\"it shows Antarctica right there\"", notes: "VERIFIED 17:43–17:48 · <span class=\"verified-tc\">\"This is the Orontius Finaeus map. It shows Antarctica right there.\"</span>" },
+      { id: "1.4", visual: "Oronce Finé 1531 map, full", source: "PD", sourceClass: "pd", anchor: "\"He calls it the Orontius Phineas map\"", notes: "Hold full-frame — this is real PD, use freely." },
+      { id: "1.5", visual: "Finé map → real Antarctica overlay, rotate/rescale animation", source: "GFX BUILD", sourceClass: "gfx", anchor: "\"rotate it, rescale it... two hundred and thirty percent\"", notes: "★ HERO ANIMATION. Most shareable asset. Show the 20° rotation, pole shift, 2.3× rescale side by side.", hero: true },
+      { id: "1.6", visual: "Aristotle / bust + old Terra Australis maps", source: "PD", sourceClass: "pd", anchor: "\"an idea twenty-three centuries old, called Terra Australis\"", notes: "Montage of pre-1820 maps all showing a southern continent." },
+      { id: "1.7", visual: "Brian on CBS News at the Pole", source: "OWN / CBS", sourceClass: "own", anchor: "\"Here's what I know from working at the South Pole\"", notes: "Credential beat. ≤8s, source credit on screen. Bordered inset." },
+      { id: "1.8", visual: "Drake Passage / glaciation graphic", source: "GFX BUILD", sourceClass: "gfx", anchor: "\"thirty-four million years... the Drake Passage opened\"", notes: "Simple animated map: passage opens, current encircles, ice locks in." },
+      { id: "1.9", visual: "Harrison chronometer", source: "PD / museum stock", sourceClass: "pd", anchor: "\"until Harrison's chronometer in the eighteenth century\"", notes: "Quick insert on the longitude self-own." },
+    ],
+  },
+  {
+    id: "cut-2",
+    num: "CUT 2",
+    title: '🪒 "<span class="accent">NOTHING\'S</span> UNDER THE PYRAMID"',
+    accent: "NOTHING'S",
+    bg: "Ghosted Giza / Khafre exterior (stock or own), 50%. DOAC thumb optional bordered inset.",
+    anchor: "Top of \"CLAIM TWO: THE PYRAMIDS\"",
+    clips: [
+      { id: "2.1", visual: "Giza pyramids, wide establishing", source: "Stock (licensed)", sourceClass: "stock", anchor: "\"Now we're in my territory\"", notes: "Establish. Daytime, clean." },
+      { id: "2.2", visual: "Hancock stating the 43,200 claim", source: "DOAC", sourceClass: "bordered", anchor: "\"multiply it by forty-three thousand two hundred\"", notes: "VERIFIED 41:43–42:08 · height × 43,200 → polar radius; perimeter × 43,200 → equatorial circumference" },
+      { id: "2.3", visual: "On-screen arithmetic: height ×43,200", source: "GFX BUILD", sourceClass: "gfx", anchor: "\"comes to six thousand three hundred twenty-nine kilometers\"", notes: "Numbers type on. 0.44% / 0.61% misses shown in red." },
+      { id: "2.4", visual: "2π animation: perimeter ÷ height", source: "GFX BUILD", sourceClass: "gfx", anchor: "\"perimeter divided by its height is two pi\"", notes: "★ THE KILL. Cross-section, ratio resolves to 6.29.", hero: true },
+      { id: "2.5", visual: "Rolling drum + seked diagram", source: "GFX BUILD", sourceClass: "gfx", anchor: "\"rolling a drum... or the seked\"", notes: "π appears from the wheel. Caption: \"The π was in the wheel, not the lost civilization.\"", hero: true },
+      { id: "2.6", visual: "Split screen: 6.283 (2π) vs 6.304 (Earth)", source: "GFX BUILD", sourceClass: "gfx", anchor: "\"forced to sit within a third of a percent\"", notes: "The \"one coincidence counted twice\" visual.", hero: true },
+      { id: "2.7", visual: "BICEP2 / telescope + CMB map", source: "OWN", sourceClass: "own", anchor: "\"when I fit a model to the cosmic microwave background\"", notes: "Brian's authority. The free-parameter / curve-fitting beat." },
+      { id: "2.8", visual: "Hancock: \"definitely something underneath it\"", source: "DOAC", sourceClass: "bordered", anchor: "\"oh, there's definitely something underneath it\"", notes: "VERIFIED 55:42–55:46 · Bartlett asks; Hancock answers: \"Oh, there's definitely something underneath it.\"" },
+      { id: "2.9", visual: "Khafre / Second Pyramid, isolate it", source: "Stock", sourceClass: "stock", anchor: "\"that exact pyramid. The Second Pyramid. Khafre.\"", notes: "Make clear it's the SAME pyramid as the muon scan." },
+      { id: "2.10", visual: "Luis Alvarez archival + muon diagram", source: "PD / archival", sourceClass: "pd", anchor: "\"a Nobel laureate... pointed cosmic-ray muons at that exact pyramid\"", notes: "★ THE WEAPON. Alvarez photo, spark-chamber setup, muon-through-stone diagram.", hero: true },
+      { id: "2.11", visual: "Science journal 1970 / \"no chambers\"", source: "Archival / journal page", sourceClass: "pd", anchor: "\"reported the result in the journal Science, in 1970\"", notes: "Lower-third: \"Alvarez et al., Science, Feb 1970 — no hidden chambers.\"" },
+      { id: "2.12", visual: "Brian's Keating Experiments muon clip", source: "OWN — Keating Experiments", sourceClass: "own", anchor: "\"I made a whole video about muons\"", notes: "★ BRIDGE TO OWN CONTENT. Link/end-card cue. Pin in description.", hero: true },
+      { id: "2.13", visual: "SAR radar claim / Biondi image", source: "News / Snopes", sourceClass: "bordered", anchor: "\"synthetic aperture radar penetrates about two meters\"", notes: "Show the viral image; caption \"~99.9% AI-generated; not peer-reviewed.\"" },
+    ],
+  },
+  {
+    id: "cut-3",
+    num: "CUT 3",
+    title: '🪒 "THE COMET THAT <span class="accent">NEVER</span> CAME"',
+    accent: "NEVER",
+    bg: "Ghosted ice-sheet / comet render, 50%. DOAC thumb optional bordered inset.",
+    anchor: "Top of \"CLAIM THREE: THE YOUNGER DRYAS IMPACT\"",
+    clips: [
+      { id: "3.1", visual: "Ice age / glacial landscape, megafauna", source: "Stock / PD", sourceClass: "pd", anchor: "\"About twelve thousand eight hundred years ago\"", notes: "Set the scene. Mammoths, ice front." },
+      { id: "3.2", visual: "Hancock + West, hands on boundary layer", source: "DOAC", sourceClass: "bordered", anchor: "\"he calls his explanation, quote, solid science\"", notes: "VERIFIED 06:56–07:13 · impact hypothesis framed as \"solid science\"; pair with 11:20–11:25, where \"nobody disputes\" refers to the catastrophe, not its cause" },
+      { id: "3.3", visual: "Comet / fragmentation render", source: "Stock GFX", sourceClass: "stock", anchor: "\"a giant comet, captured into orbit, fragmenting\"", notes: "His version, shown as his version." },
+      { id: "3.4", visual: "Holliday 2023 paper, title on screen", source: "Journal page", sourceClass: "pd", anchor: "\"Comprehensive Refutation of the Younger Dryas Impact Hypothesis\"", notes: "★ Hold on the title. Lower-third: \"Earth-Science Reviews, 2023 · 16 authors · 75 pages.\"", hero: true },
+      { id: "3.5", visual: "Stack of dispute papers (rebuttal/re-rebuttal)", source: "Journal pages", sourceClass: "pd", anchor: "\"the fight is still going back and forth\"", notes: "Screen fills with the dispute he said didn't exist." },
+      { id: "3.6", visual: "AMOC / meltwater conveyor-belt graphic", source: "GFX BUILD", sourceClass: "gfx", anchor: "\"a meltwater pulse... shutting down Atlantic circulation\"", notes: "The boring explanation that fits the data." },
+    ],
+  },
+  {
+    id: "cut-4",
+    num: "CUT 4",
+    title: '🪒 THE PATTERN + VERDICT (no card, or optional THE PATTERN)',
+    accent: "",
+    bg: "(no title card — pattern + verdict, supporting footage)",
+    anchor: "Top of \"— — — THE PATTERN — — —\"",
+    clips: [
+      { id: "4.1", visual: "Rogan/Dibble debate — \"no evidence\" concession", source: "JRE / YouTube", sourceClass: "bordered", anchor: "\"an archaeologist pressed him... no evidence\"", notes: "★ THE RECEIPT. SEARCH LINE: <span class=\"verified-tc\">\"where archaeologists have looked\"</span> (JRE #2136). ≤10s, on-screen credit. Strongest clip in the video.", hero: true },
+      { id: "4.2", visual: "Driveway / rain b-roll", source: "Stock", sourceClass: "stock", anchor: "\"My driveway being wet is consistent with rain\"", notes: "Literal, brief, a little wry." },
+      { id: "4.3", visual: "Hancock's books / Netflix series stills", source: "Press / retail", sourceClass: "bordered", anchor: "\"There is a product. Books. A Netflix series.\"", notes: "Factual. Don't dwell — 3-4s montage." },
+      { id: "4.4", visual: "Chandrasekhar + Vera Rubin", source: "PD / archival", sourceClass: "pd", anchor: "\"Chandrasekhar... Vera Rubin\"", notes: "The real-suppression examples. Respectful framing." },
+      { id: "4.5", visual: "Brian direct-to-camera, Antarctica cutaways", source: "OWN", sourceClass: "own", anchor: "\"I'll answer the phone\" / outro", notes: "Warm close. End on the ice." },
+    ],
+  },
+];
+
+// ----- state -----
+let state = load();
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  // default: all "needed"
+  const init = {};
+  for (const cut of CUTS) for (const c of cut.clips) init[`${cut.id}:${c.id}`] = "needed";
+  return init;
+}
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  flashSaved();
+  updateProgress();
+  updateLastSync();
+}
+function flashSaved() {
+  const el = document.getElementById("saved-indicator");
+  el.classList.add("show");
+  clearTimeout(flashSaved._t);
+  flashSaved._t = setTimeout(() => el.classList.remove("show"), 900);
+}
+function updateLastSync() {
+  document.getElementById("last-sync").textContent = new Date().toLocaleTimeString();
+}
+
+// ----- render -----
+function render(filter = "") {
+  const board = document.getElementById("board");
+  board.innerHTML = "";
+  const lc = filter.toLowerCase();
+  for (const cut of CUTS) {
+    const clips = cut.clips.filter(c =>
+      !lc ||
+      c.id.toLowerCase().includes(lc) ||
+      c.visual.toLowerCase().includes(lc) ||
+      c.anchor.toLowerCase().includes(lc) ||
+      (c.notes || "").toLowerCase().includes(lc));
+
+    if (filter && clips.length === 0) continue;
+
+    const sec = document.createElement("section");
+    sec.className = "cut";
+    const counts = countForCut(cut);
+    sec.innerHTML = `
+      <div class="cut-header">
+        <span class="cut-num">${cut.num}</span>
+        <span class="cut-title">${cut.title}</span>
+        <span class="cut-script-anchor">${cut.anchor}</span>
+        <span class="cut-progress"><strong>${counts.got + counts.pulled}/${cut.clips.length}</strong> sourced · ${counts.needed} needed</span>
+      </div>
+      <table class="clips">
+        <thead>
+          <tr>
+            <th style="width: 50px;">#</th>
+            <th>Visual</th>
+            <th>Source</th>
+            <th>Script anchor</th>
+            <th>Notes</th>
+            <th style="width: 240px;">Status</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    `;
+    const tbody = sec.querySelector("tbody");
+    for (const c of clips) tbody.appendChild(renderRow(cut, c));
+    board.appendChild(sec);
+  }
+}
+
+function renderRow(cut, c) {
+  const tr = document.createElement("tr");
+  const k = `${cut.id}:${c.id}`;
+  const cur = state[k] || "needed";
+  tr.innerHTML = `
+    <td><span class="clip-id">${c.id}</span></td>
+    <td>
+      <div class="clip-visual">${escapeHtml(c.visual)}</div>
+    </td>
+    <td>
+      <div class="clip-source"><span class="pill ${c.sourceClass}">${escapeHtml(c.source)}</span></div>
+    </td>
+    <td><div class="clip-anchor">${escapeHtml(c.anchor)}</div></td>
+    <td><div class="clip-notes ${c.hero ? "hero" : ""}">${c.notes}</div></td>
+    <td>
+      <div class="status-toggle" data-key="${k}">
+        <button data-status="needed" class="${cur==="needed"?"active needed":""}">needed</button>
+        <button data-status="pulled" class="${cur==="pulled"?"active pulled":""}">pulled</button>
+        <button data-status="got" class="${cur==="got"?"active got":""}">got it</button>
+        <button data-status="n-a" class="${cur==="n-a"?"active n-a":""}">n/a</button>
+      </div>
+    </td>
+  `;
+  tr.querySelectorAll("button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const newStatus = btn.dataset.status;
+      state[k] = newStatus;
+      save();
+      // re-render just this row's status pill + cut progress
+      tr.querySelectorAll("button").forEach(b => {
+        b.classList.remove("active", "needed", "pulled", "got", "n-a");
+        if (b.dataset.status === newStatus) {
+          b.classList.add("active", newStatus);
+        }
+      });
+      // update the cut progress chip
+      const sec = tr.closest(".cut");
+      const counts = countForCut(cut);
+      sec.querySelector(".cut-progress").innerHTML = `<strong>${counts.got + counts.pulled}/${cut.clips.length}</strong> sourced · ${counts.needed} needed`;
+    });
+  });
+  return tr;
+}
+
+function countForCut(cut) {
+  const out = { needed: 0, pulled: 0, got: 0, "n-a": 0 };
+  for (const c of cut.clips) {
+    const s = state[`${cut.id}:${c.id}`] || "needed";
+    out[s]++;
+  }
+  return out;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+}
+
+function updateProgress() {
+  let total = 0, got = 0, pulled = 0, needed = 0;
+  for (const cut of CUTS) for (const c of cut.clips) {
+    total++;
+    const s = state[`${cut.id}:${c.id}`] || "needed";
+    if (s === "got") got++;
+    else if (s === "pulled") pulled++;
+    else if (s === "needed") needed++;
+  }
+  const pct = total ? Math.round(((got + pulled) / total) * 100) : 0;
+  document.getElementById("progress").innerHTML =
+    `<strong>${pct}%</strong> · <span style="color:var(--pass)">${got} got</span> · <span style="color:var(--review)">${pulled} pulled</span> · <span style="color:var(--open)">${needed} needed</span> · ${total} clips`;
+}
+
+// ----- wiring -----
+document.getElementById("search").addEventListener("input", e => render(e.target.value));
+document.getElementById("export").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify({ status: state, generated: new Date().toISOString() }, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `editor-status-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+document.getElementById("reset").addEventListener("click", () => {
+  if (!confirm("Reset all clip statuses to 'needed'? Your progress will be lost.")) return;
+  for (const cut of CUTS) for (const c of cut.clips) state[`${cut.id}:${c.id}`] = "needed";
+  save();
+  render(document.getElementById("search").value);
+});
+
+// Init
+render();
+updateProgress();
+updateLastSync();
+</script>
+</body>
+</html>
