@@ -300,6 +300,7 @@
     <input type="search" id="search" placeholder="Search cards…">
     <span class="progress" id="progress">Loading…</span>
     <span class="spacer"></span>
+    <a href="https://briankeating.github.io/keatings-razor-hancock/editor.html" id="editor-link">🪒 Editor brief →</a>
     <button id="export">Export JSON</button>
     <button id="reset">Reset to seed</button>
   </div>
@@ -311,8 +312,9 @@
 
 <div class="footer">
   Galileo-loop kanban · self-contained, localStorage-backed, single file ·
-  <a href="https://linear.app/galileo-galilei" id="linear-link">Linear project: GAL · 7 labels ready</a> ·
-  <a href="https://github.com/BrianKeating/galileo-loop-test" id="repo-link">Test repo: galileo-loop-test</a>
+  <a href="https://briankeating.github.io/keatings-razor-hancock/editor.html">Editor brief sub-page →</a> ·
+  <a href="https://linear.app/galileo-galilei/project/keatings-razor-three-claims-zero-evidence-hancock-doac-40126ee0275a">Linear project: GAL</a> ·
+  <a href="https://github.com/BrianKeating/keatings-razor-hancock">GitHub: keatings-razor-hancock</a>
 </div>
 
 <div class="saved-indicator" id="saved-indicator">✓ saved</div>
@@ -397,9 +399,9 @@ const SEED = {
     { id: "C-RT-2", col: "rights", status: "pass",   priority: "med",  title: "Public domain (Finé map, Aristotle, old maps, Harrison, Alvarez era, Chandrasekhar/Rubin)", desc: "Free; still caption sources.", tags: ["rights", "ok"] },
     { id: "C-RT-3", col: "rights", status: "pass",   priority: "med",  title: "GFX builds — animation we create", desc: "No rights issue. Priority: 1.5, 2.4, 2.10.", tags: ["rights", "ok"] },
     { id: "C-RT-4", col: "rights", status: "pass",   priority: "med",  title: "Stock (licensed) — Giza, ice age, comet, driveway", desc: "Pull from your licensed library.", tags: ["rights", "ok"] },
-    { id: "C-RT-5", col: "rights", status: "open",   priority: "high", title: "DOAC Hancock clips — confirmation needed", desc: "Bordered inset, ≤10s, on-screen credit 'Diary of a CEO / YouTube'. Citation use only. Need to confirm with DOAC or rely on fair use.", tags: ["rights", "open"] },
-    { id: "C-RT-6", col: "rights", status: "open",   priority: "high", title: "JRE #2136 Dibble clip — confirmation needed", desc: "≤10s, on-screen credit. The strongest clip in the video (the concession). Clip-usage rights remain open per Gate 4.", tags: ["rights", "open", "hero"] },
-    { id: "C-RT-7", col: "rights", status: "open",   priority: "med",  title: "Netflix stills + book covers — fair use / press", desc: "Bordered inset only. 3-4s montage. Factual, don't dwell.", tags: ["rights", "open"] },
+    { id: "C-RT-5", col: "rights", status: "pass",   priority: "high", title: "DOAC Hancock clips — FAIR USE, no rights gate", desc: "Bordered inset, ≤10s, on-screen credit 'Diary of a CEO / YouTube'. Citation use only. Per Brian 2026-07-22: fair use, no rights gate.", tags: ["rights", "ok", "fair-use"] },
+    { id: "C-RT-6", col: "rights", status: "pass",   priority: "high", title: "JRE #2136 Dibble clip — FAIR USE, no rights gate", desc: "≤10s, on-screen credit. The strongest clip in the video (the concession). Per Brian 2026-07-22: fair use, no rights gate.", tags: ["rights", "ok", "fair-use", "hero"] },
+    { id: "C-RT-7", col: "rights", status: "pass",   priority: "med",  title: "Netflix stills + book covers — fair use / press", desc: "Bordered inset only. 3-4s montage. Factual, don't dwell. Per Brian 2026-07-22: fair use, no rights gate.", tags: ["rights", "ok", "fair-use"] },
 
     // Open Decisions for Brian
     { id: "C-DEC-1", col: "decisions", status: "open", priority: "high", title: "Charlatan / 'grifter' framing — keep OUT or use?", desc: "Packet says OUT. Your call, flagged at the end. The contempt lives in the precision. 'He admitted there's no evidence' humiliates him more than any insult.", tags: ["brian-decision", "tone"] },
@@ -624,4 +626,3 @@ renderAll();
 </script>
 </body>
 </html>
-
